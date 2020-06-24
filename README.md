@@ -57,6 +57,32 @@ module.exports = {
 };
 ```
 
+In order to check liveness and/or readiness a little deeper, you can also give a *checker function* which takes a callback. If you give a parameter to the callback you will tell the middlware to fail the liveness and/or readiness check.
+Also if you do not respond in a certain amount of time, the liveness and/or readiness check will fail.
+
+```js
+// moleculer.config.js
+const HealthMiddleware = require("./health-check.middleware.js");
+
+module.exports = {
+  middlewares: [
+    HealthMiddleware({
+      liveness: {
+        checkerTimeoutMs: 30000, // default value
+        checker: function(next) {
+          // Execute here your liveness check...
+          if (ok) {
+            next();
+          } else {
+            next('error');
+          }
+        },
+      },
+    }),
+  ],
+};
+```
+
 ### Usage in Kubernetes
 
 ```yaml
