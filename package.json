@@ -1,0 +1,32 @@
+{
+  "name": "@r2d2bzh/moleculer-healthcheck-middleware",
+  "version": "0.0.0",
+  "description": "See https://gist.github.com/icebob/c717ae22002b9ecaa4b253a67952da3a",
+  "main": "index.js",
+  "scripts": {
+    "pretest": "npm install",
+    "test": "ava"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/r2d2bzh/moleculer-healthcheck-middleware.git"
+  },
+  "keywords": [
+    "moleculer",
+    "middleware",
+    "kubernetes",
+    "healthcheck"
+  ],
+  "author": "r2d2bzh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/r2d2bzh/moleculer-healthcheck-middleware/issues"
+  },
+  "homepage": "https://github.com/r2d2bzh/moleculer-healthcheck-middleware#readme",
+  "devDependencies": {
+    "ava": "^3.8.2",
+    "moleculer": "^0.14.7",
+    "node-fetch": "^2.6.0"
+  },
+  "dependencies": {}
+}

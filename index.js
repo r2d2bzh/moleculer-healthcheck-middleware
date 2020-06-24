@@ -3,19 +3,20 @@
 
 "use strict";
 
-const _ = require("lodash");
 const http = require("http");
+const EventEmitter = require('events');
+
+const dflt = function(current, ifUndefined) {
+	return typeof current !== undefined ? ifUndefined : current;
+};
 
 module.exports = function(opts) {
-	opts = _.defaultsDeep(opts, {
-		port: 3001,
-		readiness: {
-			path: "/ready"
-		},
-		liveness: {
-			path: "/live"
-		},
-	});
+	opts = dflt(opts, {});
+	opts.port = dflt(opts.port, 3001);
+	opts.readiness = dflt(opts.readiness, {});
+	opts.liveness = dflt(opts.liveness, {});
+	opts.readiness.path = dflt(opts.readiness.path, "/ready");
+	opts.liveness.path = dflt(opts.liveness.path, "/live");
 
 	let state = "down";
 	let server;
@@ -52,6 +53,7 @@ module.exports = function(opts) {
 
 	return {
 		created(broker) {
+			broker.healthcheck = new EventEmitter();
 			state = "starting";
 
 			server = http.createServer(handler);
@@ -61,10 +63,15 @@ module.exports = function(opts) {
 					return broker.logger.error("Unable to start health-check server", err);
 				}
 
+				// listening port is chosen by NodeJS if opts.port === 0
+				const port = server.address().port;
+
+				broker.healthcheck.emit('port', port);
+
 				broker.logger.info("");
 				broker.logger.info("K8s health-check server listening on");
-				broker.logger.info(`    http://localhost:${opts.port}${opts.readiness.path}`);
-				broker.logger.info(`    http://localhost:${opts.port}${opts.liveness.path}`);
+				broker.logger.info(`    http://localhost:${port}${opts.readiness.path}`);
+				broker.logger.info(`    http://localhost:${port}${opts.liveness.path}`);
 				broker.logger.info("");
 			});
 		},
