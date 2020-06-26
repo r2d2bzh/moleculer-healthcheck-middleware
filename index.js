@@ -7,7 +7,7 @@ const http = require("http");
 const EventEmitter = require('events');
 
 const dflt = function(current, ifUndefined) {
-	return typeof current !== undefined ? ifUndefined : current;
+	return typeof current === 'undefined' ? ifUndefined : current;
 };
 
 module.exports = function(opts) {
