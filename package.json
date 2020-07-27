@@ -24,8 +24,8 @@
   },
   "homepage": "https://github.com/r2d2bzh/moleculer-healthcheck-middleware#readme",
   "devDependencies": {
-    "ava": "^3.8.2",
-    "moleculer": "^0.14.7",
+    "ava": "^3.11.0",
+    "moleculer": "^0.14.8",
     "node-fetch": "^2.6.0"
   },
   "dependencies": {}
