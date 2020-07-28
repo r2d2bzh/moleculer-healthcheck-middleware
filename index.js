@@ -6,71 +6,75 @@
 const http = require('http');
 const EventEmitter = require('events');
 
-const dflt = function(current, ifUndefined) {
-	return typeof current === 'undefined' ? ifUndefined : current;
+function setValueOrDefault (value, defaultValue) {
+	return typeof value === 'undefined' ? defaultValue : value;
+};
+
+function initOptions(opts) {
+	opts = setValueOrDefault(opts, {});
+	opts.port = setValueOrDefault(opts.port, 3001);
+	opts.readiness = setValueOrDefault(opts.readiness, {});
+	opts.liveness = setValueOrDefault(opts.liveness, {});
+	opts.readiness.path = setValueOrDefault(opts.readiness.path, '/ready');
+	opts.readiness.createChecker = setValueOrDefault(opts.readiness.createChecker, function () { return opts.readiness.checker; });
+	opts.readiness.checker = setValueOrDefault(opts.readiness.checker, function (next) { return next(); });
+	opts.readiness.checkerTimeoutMs = setValueOrDefault(opts.readiness.checkerTimeoutMs, 20000);
+	opts.liveness.path = setValueOrDefault(opts.liveness.path, '/live');
+	opts.liveness.createChecker = setValueOrDefault(opts.liveness.createChecker, function () { return opts.liveness.checker; });
+	opts.liveness.checker = setValueOrDefault(opts.liveness.checker, function (next) { return next(); });
+	opts.liveness.checkerTimeoutMs = setValueOrDefault(opts.liveness.checkerTimeoutMs, 20000);
+};
+
+function initChecker(checkersInfo, servicePath, checker, timeoutMs) {
+	checkersInfo[servicePath] = {
+		checker: checker,
+		timeoutMs: timeoutMs
+	};
+};
+
+function checkerMustBeFunction(checker) {
+	if (typeof checker !== 'function') {
+		throw new Error('Can not create middleware checker option must be a function');
+	}
+};
+
+function writeResponse(res, state, code) {
+	const resHeader = {
+		'Content-Type': 'application/json; charset=utf-8'
+	};
+	const content = {
+		state,
+		uptime: process.uptime(),
+		timestamp: Date.now()
+	};
+	res.writeHead(code, resHeader);
+	res.end(JSON.stringify(content, null, 2));
 };
 
 module.exports = function(opts) {
-	opts = dflt(opts, {});
-	opts.port = dflt(opts.port, 3001);
-	opts.readiness = dflt(opts.readiness, {});
-	opts.liveness = dflt(opts.liveness, {});
-	opts.readiness.path = dflt(opts.readiness.path, '/ready');
-	opts.readiness.checker = dflt(opts.readiness.checker, function (next) { return next(); });
-	opts.readiness.checkerTimeoutMs = dflt(opts.readiness.checkerTimeoutMs, 20000);
-	opts.liveness.path = dflt(opts.liveness.path, '/live');
-	opts.liveness.checker = dflt(opts.liveness.checker, function (next) { return next(); });
-	opts.liveness.checkerTimeoutMs = dflt(opts.liveness.checkerTimeoutMs, 20000);
+	initOptions(opts);
 
-	if (typeof opts.liveness.checker !== 'function' || typeof opts.readiness.checker !== 'function') {
-		throw new Error('Can not create middleware checker option must be a function');
-	}
+	checkerMustBeFunction(opts.readiness.checker);
+	checkerMustBeFunction(opts.liveness.checker);
 
 	let state = 'down';
 	let server;
+	const checkersInfo = {};
 
 	function handler(req, res) {
 		if (req.url == opts.readiness.path || req.url == opts.liveness.path) {
-			const resHeader = {
-				'Content-Type': 'application/json; charset=utf-8'
-			};
+			const checkerInfo = checkersInfo[req.url];
 
-			const content = {
-				state,
-				uptime: process.uptime(),
-				timestamp: Date.now()
-			};
+			const timeout = setTimeout(function () {
+				writeResponse(res, state, 503);
+			}, checkerInfo.timeoutMs);
 
-			if (req.url == opts.readiness.path) {
-				// Readiness if the broker started successfully.
-				// https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes
-				const timeout = setTimeout(function() {
-					res.writeHead(503, resHeader);
-					res.end(JSON.stringify(content, null, 2));
-				}, opts.readiness.checkerTimeoutMs);
-
-				opts.readiness.checker(function(error) {
-					clearTimeout(timeout);
-					res.writeHead((typeof error === 'undefined' && state != 'down') ? 200 : 503, resHeader);
-					res.end(JSON.stringify(content, null, 2));
-				});
-			} else {
-				// Liveness if the broker is not stopped.
-				// https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-a-liveness-command
-				const timeout = setTimeout(function() {
-					res.writeHead(503, resHeader);
-					res.end(JSON.stringify(content, null, 2));
-				}, opts.liveness.checkerTimeoutMs);
-
-				opts.liveness.checker(function(error) {
-					clearTimeout(timeout);
-					res.writeHead((typeof error === 'undefined' && state != 'down') ? 200 : 503, resHeader);
-					res.end(JSON.stringify(content, null, 2));
-				});
-			}
+			checkerInfo.checker(function (errorMessage) {
+				clearTimeout(timeout);
+				writeResponse(res, state, (typeof errorMessage === 'undefined' && state != 'down') ? 200 : 503);
+			});
 		} else {
-			res.writeHead(404, http.STATUS_CODES[404], {});
-			res.end();
+			writeResponse(res, state, 404);
 		}
 	}
 
@@ -87,15 +91,13 @@ module.exports = function(opts) {
 				}
 
 				// listening port is chosen by NodeJS if opts.port === 0
-				const port = server.address().port;
-
-				broker.healthcheck.port = port;
-				broker.healthcheck.emit('port', port);
+				broker.healthcheck.port = server.address().port;
+				broker.healthcheck.emit('port', broker.healthcheck.port);
 
 				broker.logger.info('');
 				broker.logger.info('K8s health-check server listening on');
-				broker.logger.info(`    http://localhost:${port}${opts.readiness.path}`);
-				broker.logger.info(`    http://localhost:${port}${opts.liveness.path}`);
+				broker.logger.info(`    http://localhost:${broker.healthcheck.port}${opts.readiness.path}`);
+				broker.logger.info(`    http://localhost:${broker.healthcheck.port}${opts.liveness.path}`);
 				broker.logger.info('');
 			});
 		},
@@ -103,6 +105,9 @@ module.exports = function(opts) {
 		// After broker started
 		started(broker) {
 			state = 'up';
+
+			initChecker(checkersInfo, opts.readiness.path, opts.readiness.createChecker(broker), opts.readiness.timeoutMs);
+			initChecker(checkersInfo, opts.liveness.path, opts.liveness.createChecker(broker), opts.liveness.timeoutMs);
 		},
 
 		// Before broker stopping
