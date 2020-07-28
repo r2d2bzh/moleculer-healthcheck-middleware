@@ -32,9 +32,9 @@ function initChecker(checkersInfo, servicePath, checker, timeoutMs) {
 	};
 };
 
-function checkerMustBeFunction(checker) {
-	if (typeof checker !== 'function') {
-		throw new Error('Can not create middleware checker option must be a function');
+function mustBeFunction(func) {
+	if (typeof func !== 'function') {
+		throw new Error('Can not create middleware checker or createChecker option must be a function');
 	}
 };
 
@@ -54,8 +54,11 @@ function writeResponse(res, state, code) {
 module.exports = function(opts) {
 	initOptions(opts);
 
-	checkerMustBeFunction(opts.readiness.checker);
-	checkerMustBeFunction(opts.liveness.checker);
+	mustBeFunction(opts.readiness.checker);
+	mustBeFunction(opts.liveness.checker);
+
+	mustBeFunction(opts.readiness.createChecker);
+	mustBeFunction(opts.liveness.createChecker);
 
 	let state = 'down';
 	let server;
