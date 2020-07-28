@@ -8,7 +8,6 @@ const event = (emitter, eventName) =>
 
 const startBroker = async (healthCheckOpts = {}) => {
   const broker = new ServiceBroker({
-    // logger: false,
     middlewares: [HealthMiddleware({
       port: 0,
       ...healthCheckOpts
@@ -87,6 +86,24 @@ test('if custom checker liveness does not invoke callback it returns an error', 
     readiness: {
       checker: () => {},
       checkerTimeoutMs: 500
+    }
+  });
+
+  const endpoints = ['ready', 'live'];
+  const responses = await Promise.all(
+    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`).catch(error => error))
+  );
+  t.snapshot(responses.map((r) => r.status));
+  await broker.stop();
+})
+
+test('accessing the broker using the createChecker factory', async (t) => {
+  const { broker, port } = await startBroker({
+    liveness: {
+      createChecker: (b) => (next) => { next(b.healthcheck.port); }
+    },
+    readiness: {
+      createChecker: (b) => (next) => { next(b.healthcheck.port); }
     }
   });
 

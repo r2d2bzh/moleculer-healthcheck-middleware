@@ -83,6 +83,34 @@ module.exports = {
 };
 ```
 
+The checker is initialized through the *createChecker* factory during the *started* Moleculer middleware hook.
+It takes the broker has a parameter.
+You can provide your own implementation of *createChecker* to the HealthMiddleware.
+This can be usefull if you need the broker inside your checker for instance.
+
+```js
+const HealthMiddleware = require("./health-check.middleware.js");
+
+module.exports = {
+  middlewares: [
+    HealthMiddleware({
+      liveness: {
+        createChecker: (broker) =>
+          (next) => {
+            if (ok) {
+              broker.getLogger('healthcheck').info('Everything is fine.');
+              next();
+            } else {
+              broker.getLogger('healthcheck').error('error');
+              next('error');
+            }
+          }
+        }
+    }),
+  ],
+};
+```
+
 ### Usage in Kubernetes
 
 ```yaml
