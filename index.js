@@ -24,15 +24,15 @@ module.exports = function(opts) {
 			const probe = probeMap[req.url];
 
 			const timeout = setTimeout(function () {
-				writeResponse(res, state, 503);
+				writeResponse(res, state, 503, 'Request timeout');
 			}, probe.timeoutMs);
 
 			probe.checker(function (errorMessage) {
 				clearTimeout(timeout);
-				writeResponse(res, state, (typeof errorMessage === 'undefined' && state != 'down') ? 200 : 503);
+				writeResponse(res, state, (typeof errorMessage === 'undefined' && state != 'down') ? 200 : 503, errorMessage);
 			});
 		} else {
-			writeResponse(res, state, 404);
+			writeResponse(res, state, 404, 'Not found');
 		}
 	}
 
@@ -105,17 +105,25 @@ function optionMustBeFunction(option, optionName) {
 	}
 };
 
-function writeResponse(res, state, code) {
+function writeResponse(res, state, code, errorMessage) {
 	const resHeader = {
 		'Content-Type': 'application/json; charset=utf-8'
 	};
-	const content = {
-		state,
-		uptime: process.uptime(),
-		timestamp: Date.now()
-	};
 	res.writeHead(code, resHeader);
+	const content = buildResponseContent(state, code, errorMessage);
 	res.end(JSON.stringify(content, null, 2));
+};
+
+function buildResponseContent(state, code, errorMessage) {
+	if(code == 200) {
+		return {
+			state,
+			uptime: process.uptime(),
+			timestamp: Date.now()
+		};
+	} else {
+		return errorMessage;
+	}
 };
 
 function logStartMessage(logger, port, readinessPath, livenessPath) {
