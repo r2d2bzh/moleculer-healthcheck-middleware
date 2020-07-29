@@ -17,17 +17,17 @@ module.exports = function(opts) {
 
 	let state = 'down';
 	let server;
-	const checkersInfo = {};
+	const probeMap = {};
 
 	function handler(req, res) {
 		if (req.url == opts.readiness.path || req.url == opts.liveness.path) {
-			const checkerInfo = checkersInfo[req.url];
+			const probe = probeMap[req.url];
 
 			const timeout = setTimeout(function () {
 				writeResponse(res, state, 503);
-			}, checkerInfo.timeoutMs);
+			}, probe.timeoutMs);
 
-			checkerInfo.checker(function (errorMessage) {
+			probe.checker(function (errorMessage) {
 				clearTimeout(timeout);
 				writeResponse(res, state, (typeof errorMessage === 'undefined' && state != 'down') ? 200 : 503);
 			});
@@ -59,9 +59,7 @@ module.exports = function(opts) {
 		// After broker started
 		started(broker) {
 			state = 'up';
-
-			initChecker(checkersInfo, opts.readiness.path, opts.readiness.createChecker(broker), opts.readiness.timeoutMs);
-			initChecker(checkersInfo, opts.liveness.path, opts.liveness.createChecker(broker), opts.liveness.timeoutMs);
+			[opts.readiness, opts.liveness].forEach((probe) => initProbeMap(probeMap, probe, broker));
 		},
 
 		// Before broker stopping
@@ -96,11 +94,9 @@ function initOptions(opts) {
 	opts.liveness.checkerTimeoutMs = defaultIfUndefined(opts.liveness.checkerTimeoutMs, 20000);
 };
 
-function initChecker(checkersInfo, servicePath, checker, timeoutMs) {
-	checkersInfo[servicePath] = {
-		checker,
-		timeoutMs
-	};
+function initProbeMap(probeMap, probe, broker) {
+	probe.checker = probe.createChecker(broker);
+	probeMap[probe.path] = probe;
 };
 
 function optionMustBeFunction(option, optionName) {
