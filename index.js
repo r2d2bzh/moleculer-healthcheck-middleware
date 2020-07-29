@@ -52,11 +52,7 @@ module.exports = function(opts) {
 				broker.healthcheck.port = server.address().port;
 				broker.healthcheck.emit('port', broker.healthcheck.port);
 
-				broker.logger.info('');
-				broker.logger.info('K8s health-check server listening on');
-				broker.logger.info(`    http://localhost:${broker.healthcheck.port}${opts.readiness.path}`);
-				broker.logger.info(`    http://localhost:${broker.healthcheck.port}${opts.liveness.path}`);
-				broker.logger.info('');
+				logStartMessage(broker.logger, broker.healthcheck.port, opts.readiness.path, opts.liveness.path);
 			});
 		},
 
@@ -124,4 +120,12 @@ function writeResponse(res, state, code) {
 	};
 	res.writeHead(code, resHeader);
 	res.end(JSON.stringify(content, null, 2));
+};
+
+function logStartMessage(logger, port, readinessPath, livenessPath) {
+	logger.info('');
+	logger.info('K8s health-check server listening on');
+	logger.info(`    http://localhost:${port}${readinessPath}`);
+	logger.info(`    http://localhost:${port}${livenessPath}`);
+	logger.info('');
 };
