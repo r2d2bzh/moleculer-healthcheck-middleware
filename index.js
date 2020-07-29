@@ -20,9 +20,10 @@ module.exports = function(opts) {
 	const probeMap = {};
 
 	function handler(req, res) {
-		if (req.url == opts.readiness.path || req.url == opts.liveness.path) {
-			const probe = probeMap[req.url];
-
+		const probe = probeMap[req.url];
+		if (!probe) {
+			writeResponse(res, state, 404, 'Not found');
+		} else {
 			const timeout = setTimeout(function () {
 				writeResponse(res, state, 503, 'Request timeout');
 			}, probe.timeoutMs);
@@ -31,8 +32,6 @@ module.exports = function(opts) {
 				clearTimeout(timeout);
 				writeResponse(res, state, (typeof errorMessage === 'undefined' && state != 'down') ? 200 : 503, errorMessage);
 			});
-		} else {
-			writeResponse(res, state, 404, 'Not found');
 		}
 	}
 
