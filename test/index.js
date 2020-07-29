@@ -95,7 +95,7 @@ test('if custom checker liveness does not invoke callback it returns an error', 
   );
   t.snapshot(responses.map((r) => r.status));
   await broker.stop();
-})
+});
 
 test('accessing the broker using the createChecker factory', async (t) => {
   const { broker, port } = await startBroker({
@@ -113,4 +113,4 @@ test('accessing the broker using the createChecker factory', async (t) => {
   );
   t.snapshot(responses.map((r) => r.status));
   await broker.stop();
-})
+});
