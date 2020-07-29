@@ -85,8 +85,8 @@ module.exports = {
 
 The checker is initialized through the *createChecker* factory and takes the broker as a parameter.
 It is called during the *started* Moleculer middleware hook .
-You can provide your own implementation of *createChecker* to the HealthMiddleware.
-This can be usefull if for instance you need the broker inside your checker.
+You can provide your own implementation of *createChecker* to the healthcheck middleware.
+This is necessary when the checker function needs access to the broker.
 
 ```js
 const HealthMiddleware = require("./health-check.middleware.js");
