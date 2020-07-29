@@ -6,7 +6,7 @@ const HealthMiddleware = require('..');
 const event = (emitter, eventName) =>
   new Promise((resolve) => emitter.once(eventName, resolve));
 
-const startBroker = async (healthCheckOpts = {}) => {
+const startBroker = async (t, healthCheckOpts = {}) => {
   const broker = new ServiceBroker({
     middlewares: [HealthMiddleware({
       port: 0,
@@ -25,20 +25,19 @@ const startBroker = async (healthCheckOpts = {}) => {
     port = broker.healthcheck.port;
   }
 
-  return { broker, port };
-}
-
-test.beforeEach(async (t) => {
-  const { broker, port } = await startBroker();
   t.context.broker = broker;
   t.context.healthport = port;
-});
+}
 
-test.afterEach(async (t) => {
-  await t.context.broker.stop();
+test.afterEach.always(async (t) => {
+  if(t.context.broker) {
+    await t.context.broker.stop();
+  }
 });
 
 test('healthcheck endpoints are responding', async (t) => {
+  await startBroker(t)
+
   const endpoints = ['ready', 'live'];
   const responses = await Promise.all(
     endpoints.map((e) => fetch(`http://127.0.0.1:${t.context.healthport}/${e}`))
@@ -50,8 +49,6 @@ test('healthcheck endpoints are responding', async (t) => {
 });
 
 test('healthcheck should not respond if broker is stopped', async (t) => {
-  await t.context.broker.stop();
-
   const endpoints = ['ready', 'live'];
   const errors = await Promise.all(
     endpoints.map((e) => fetch(`http://127.0.0.1:${t.context.healthport}/${e}`).catch(error => error))
@@ -60,7 +57,7 @@ test('healthcheck should not respond if broker is stopped', async (t) => {
 });
 
 test('custom liveness checker can be given in parameter', async (t) => {
-  const { broker, port } = await startBroker({
+  await startBroker(t, {
     liveness: {
       checker: (next) => { next('Error'); }
     },
@@ -69,16 +66,16 @@ test('custom liveness checker can be given in parameter', async (t) => {
     }
   })
 
+  const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
   const responses = await Promise.all(
     endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`).catch(error => error))
   );
   t.snapshot(responses.map((r) => r.status));
-  await broker.stop();
 });
 
 test('if custom checker liveness does not invoke callback it returns an error', async (t) => {
-  const { broker, port } = await startBroker({
+  await startBroker(t, {
     liveness: {
       checker: () => {},
       checkerTimeoutMs: 500
@@ -89,16 +86,16 @@ test('if custom checker liveness does not invoke callback it returns an error', 
     }
   });
 
+  const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
   const responses = await Promise.all(
     endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`).catch(error => error))
   );
   t.snapshot(responses.map((r) => r.status));
-  await broker.stop();
 });
 
 test('accessing the broker using the createChecker factory', async (t) => {
-  const { broker, port } = await startBroker({
+  await startBroker(t, {
     liveness: {
       createChecker: (b) => (next) => { next(b.healthcheck.port); }
     },
@@ -107,10 +104,16 @@ test('accessing the broker using the createChecker factory', async (t) => {
     }
   });
 
+  const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
   const responses = await Promise.all(
     endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`).catch(error => error))
   );
-  t.snapshot(responses.map((r) => r.status));
-  await broker.stop();
+
+  await Promise.all(
+    responses.map(async (res) => {
+      const body = await res.json();
+      t.deepEqual(body, port);
+    })
+  );
 });
