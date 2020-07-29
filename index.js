@@ -102,8 +102,8 @@ function initOptions(opts) {
 
 function initChecker(checkersInfo, servicePath, checker, timeoutMs) {
 	checkersInfo[servicePath] = {
-		checker: checker,
-		timeoutMs: timeoutMs
+		checker,
+		timeoutMs
 	};
 };
 
