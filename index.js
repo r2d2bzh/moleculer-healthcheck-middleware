@@ -6,51 +6,6 @@
 const http = require('http');
 const EventEmitter = require('events');
 
-function returnDefaultIfUndefined (value, defaultValue) {
-	return typeof value === 'undefined' ? defaultValue : value;
-};
-
-function initOptions(opts) {
-	opts = returnDefaultIfUndefined(opts, {});
-	opts.port = returnDefaultIfUndefined(opts.port, 3001);
-	opts.readiness = returnDefaultIfUndefined(opts.readiness, {});
-	opts.liveness = returnDefaultIfUndefined(opts.liveness, {});
-	opts.readiness.path = returnDefaultIfUndefined(opts.readiness.path, '/ready');
-	opts.readiness.createChecker = returnDefaultIfUndefined(opts.readiness.createChecker, function () { return opts.readiness.checker; });
-	opts.readiness.checker = returnDefaultIfUndefined(opts.readiness.checker, function (next) { return next(); });
-	opts.readiness.checkerTimeoutMs = returnDefaultIfUndefined(opts.readiness.checkerTimeoutMs, 20000);
-	opts.liveness.path = returnDefaultIfUndefined(opts.liveness.path, '/live');
-	opts.liveness.createChecker = returnDefaultIfUndefined(opts.liveness.createChecker, function () { return opts.liveness.checker; });
-	opts.liveness.checker = returnDefaultIfUndefined(opts.liveness.checker, function (next) { return next(); });
-	opts.liveness.checkerTimeoutMs = returnDefaultIfUndefined(opts.liveness.checkerTimeoutMs, 20000);
-};
-
-function initChecker(checkersInfo, servicePath, checker, timeoutMs) {
-	checkersInfo[servicePath] = {
-		checker: checker,
-		timeoutMs: timeoutMs
-	};
-};
-
-function mustBeFunction(func) {
-	if (typeof func !== 'function') {
-		throw new Error('Can not create middleware checker or createChecker option must be a function');
-	}
-};
-
-function writeResponse(res, state, code) {
-	const resHeader = {
-		'Content-Type': 'application/json; charset=utf-8'
-	};
-	const content = {
-		state,
-		uptime: process.uptime(),
-		timestamp: Date.now()
-	};
-	res.writeHead(code, resHeader);
-	res.end(JSON.stringify(content, null, 2));
-};
-
 module.exports = function(opts) {
 	initOptions(opts);
 
@@ -124,4 +79,49 @@ module.exports = function(opts) {
 			server.close();
 		}
 	};
+};
+
+function returnDefaultIfUndefined (value, defaultValue) {
+	return typeof value === 'undefined' ? defaultValue : value;
+};
+
+function initOptions(opts) {
+	opts = returnDefaultIfUndefined(opts, {});
+	opts.port = returnDefaultIfUndefined(opts.port, 3001);
+	opts.readiness = returnDefaultIfUndefined(opts.readiness, {});
+	opts.liveness = returnDefaultIfUndefined(opts.liveness, {});
+	opts.readiness.path = returnDefaultIfUndefined(opts.readiness.path, '/ready');
+	opts.readiness.createChecker = returnDefaultIfUndefined(opts.readiness.createChecker, function () { return opts.readiness.checker; });
+	opts.readiness.checker = returnDefaultIfUndefined(opts.readiness.checker, function (next) { return next(); });
+	opts.readiness.checkerTimeoutMs = returnDefaultIfUndefined(opts.readiness.checkerTimeoutMs, 20000);
+	opts.liveness.path = returnDefaultIfUndefined(opts.liveness.path, '/live');
+	opts.liveness.createChecker = returnDefaultIfUndefined(opts.liveness.createChecker, function () { return opts.liveness.checker; });
+	opts.liveness.checker = returnDefaultIfUndefined(opts.liveness.checker, function (next) { return next(); });
+	opts.liveness.checkerTimeoutMs = returnDefaultIfUndefined(opts.liveness.checkerTimeoutMs, 20000);
+};
+
+function initChecker(checkersInfo, servicePath, checker, timeoutMs) {
+	checkersInfo[servicePath] = {
+		checker: checker,
+		timeoutMs: timeoutMs
+	};
+};
+
+function mustBeFunction(func) {
+	if (typeof func !== 'function') {
+		throw new Error('Can not create middleware checker or createChecker option must be a function');
+	}
+};
+
+function writeResponse(res, state, code) {
+	const resHeader = {
+		'Content-Type': 'application/json; charset=utf-8'
+	};
+	const content = {
+		state,
+		uptime: process.uptime(),
+		timestamp: Date.now()
+	};
+	res.writeHead(code, resHeader);
+	res.end(JSON.stringify(content, null, 2));
 };
