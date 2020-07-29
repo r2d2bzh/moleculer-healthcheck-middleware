@@ -81,23 +81,23 @@ module.exports = function(opts) {
 	};
 };
 
-function returnDefaultIfUndefined (value, defaultValue) {
+function defaultIfUndefined (value, defaultValue) {
 	return typeof value === 'undefined' ? defaultValue : value;
 };
 
 function initOptions(opts) {
-	opts = returnDefaultIfUndefined(opts, {});
-	opts.port = returnDefaultIfUndefined(opts.port, 3001);
-	opts.readiness = returnDefaultIfUndefined(opts.readiness, {});
-	opts.liveness = returnDefaultIfUndefined(opts.liveness, {});
-	opts.readiness.path = returnDefaultIfUndefined(opts.readiness.path, '/ready');
-	opts.readiness.createChecker = returnDefaultIfUndefined(opts.readiness.createChecker, function () { return opts.readiness.checker; });
-	opts.readiness.checker = returnDefaultIfUndefined(opts.readiness.checker, function (next) { return next(); });
-	opts.readiness.checkerTimeoutMs = returnDefaultIfUndefined(opts.readiness.checkerTimeoutMs, 20000);
-	opts.liveness.path = returnDefaultIfUndefined(opts.liveness.path, '/live');
-	opts.liveness.createChecker = returnDefaultIfUndefined(opts.liveness.createChecker, function () { return opts.liveness.checker; });
-	opts.liveness.checker = returnDefaultIfUndefined(opts.liveness.checker, function (next) { return next(); });
-	opts.liveness.checkerTimeoutMs = returnDefaultIfUndefined(opts.liveness.checkerTimeoutMs, 20000);
+	opts = defaultIfUndefined(opts, {});
+	opts.port = defaultIfUndefined(opts.port, 3001);
+	opts.readiness = defaultIfUndefined(opts.readiness, {});
+	opts.liveness = defaultIfUndefined(opts.liveness, {});
+	opts.readiness.path = defaultIfUndefined(opts.readiness.path, '/ready');
+	opts.readiness.createChecker = defaultIfUndefined(opts.readiness.createChecker, function () { return opts.readiness.checker; });
+	opts.readiness.checker = defaultIfUndefined(opts.readiness.checker, function (next) { return next(); });
+	opts.readiness.checkerTimeoutMs = defaultIfUndefined(opts.readiness.checkerTimeoutMs, 20000);
+	opts.liveness.path = defaultIfUndefined(opts.liveness.path, '/live');
+	opts.liveness.createChecker = defaultIfUndefined(opts.liveness.createChecker, function () { return opts.liveness.checker; });
+	opts.liveness.checker = defaultIfUndefined(opts.liveness.checker, function (next) { return next(); });
+	opts.liveness.checkerTimeoutMs = defaultIfUndefined(opts.liveness.checkerTimeoutMs, 20000);
 };
 
 function initChecker(checkersInfo, servicePath, checker, timeoutMs) {
