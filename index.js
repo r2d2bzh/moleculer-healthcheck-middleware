@@ -9,11 +9,11 @@ const EventEmitter = require('events');
 module.exports = function(opts) {
 	initOptions(opts);
 
-	mustBeFunction(opts.readiness.checker);
-	mustBeFunction(opts.liveness.checker);
+	optionMustBeFunction(opts.readiness.checker, 'readiness.checker');
+	optionMustBeFunction(opts.liveness.checker, 'liveness.checker');
 
-	mustBeFunction(opts.readiness.createChecker);
-	mustBeFunction(opts.liveness.createChecker);
+	optionMustBeFunction(opts.readiness.createChecker, 'readiness.createChecker');
+	optionMustBeFunction(opts.liveness.createChecker, 'liveness.createChecker');
 
 	let state = 'down';
 	let server;
@@ -107,9 +107,9 @@ function initChecker(checkersInfo, servicePath, checker, timeoutMs) {
 	};
 };
 
-function mustBeFunction(func) {
-	if (typeof func !== 'function') {
-		throw new Error('Can not create middleware checker or createChecker option must be a function');
+function optionMustBeFunction(option, optionName) {
+	if (typeof option !== 'function') {
+		throw new Error(`option ${optionName} is not a function`);
 	}
 };
 
