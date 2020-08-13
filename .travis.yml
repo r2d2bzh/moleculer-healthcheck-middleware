@@ -1,9 +1,15 @@
 language: node_js
 sudo: false
 node_js:
-  - 10
+- 10
 install:
-  - npm i
+- npm i
 script:
-  - npm test
-
+- npm test
+deploy:
+  provider: npm
+  email: gautaz@users.noreply.github.com
+  api_key:
+    secure: uX/5L5YjsRHJgIePxx7pAWJkwL4pxqYMj+okdKWR2oCxOwNNJeEr7qD2EIJRYZxu7MHpBZsjTeWFjokMoigkE7XsAg3YswEOIMlT50SlJk7o3cTxKWVIrTy/cU0vHsyndoTjo0zACRsA/YkaGbx2wWl0y6A3OxK52lxnPSO4BABNVDfnJX4P993Pddv891YQZXZpphS9JFP5dZ8ym38gvzlcnYbHnbwnBjo87efRvx8JKJnL9mVzAvglGtzkEh2j2Zk6k9vHBiGGSDNpSRgT0yVtSceDvHbNrLs5znlR9RhKnO8eASKDzhUOmvYi8mVrtC0MR5lQwDrgWyap8pqPISUdbsxWN+6U4zy9ztDWB6UmWv5W4byoyQ5+kkT7PxxoWdQ/FNLv0z/GUThqwkCuEahciKc0koMpCB3rY3KfjYRhUvxDsXILyy3dfFGYz3XQJEWLk6Rw+ExObxI4uCA4td7/AK5zJ/cFtgRx7b9kTn/HOQXjjvCFpd8pATrS60SCnNNGGByfvWo1sGr6OFIhBw6MaU94ppUiK7PNuXfJQlN5Zt97cydxSk7L5YsQUrCiYgSbQEbADG3Zn/uIdsBIcEEOIQs50SbXITI7LXA4f6AMwk1aelJ7pQc9a5m5y4GQNSEB8LXMyP9pMXZRaMDsjEMZz4Ng+gwx2qPjENx4bwg=
+  on:
+    tags: true
