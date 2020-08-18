@@ -7,7 +7,7 @@ const http = require('http');
 const EventEmitter = require('events');
 
 module.exports = function(opts) {
-  initOptions(opts);
+  opts = initOptions(opts);
 
   optionMustBeFunction(opts.readiness.checker, 'readiness.checker');
   optionMustBeFunction(opts.liveness.checker, 'liveness.checker');
@@ -91,6 +91,7 @@ function initOptions(opts) {
   opts.liveness.createChecker = defaultIfUndefined(opts.liveness.createChecker, function () { return opts.liveness.checker; });
   opts.liveness.checker = defaultIfUndefined(opts.liveness.checker, function (next) { return next(); });
   opts.liveness.checkerTimeoutMs = defaultIfUndefined(opts.liveness.checkerTimeoutMs, 20000);
+  return opts;
 };
 
 function initProbeMap(probeMap, probe, broker) {
