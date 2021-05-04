@@ -36,7 +36,7 @@ test.afterEach.always(async (t) => {
 });
 
 test('healthcheck endpoints are responding', async (t) => {
-  await startBroker(t)
+  await startBroker(t);
 
   const endpoints = ['ready', 'live'];
   const responses = await Promise.all(
@@ -46,6 +46,18 @@ test('healthcheck endpoints are responding', async (t) => {
   t.snapshot(
     (await Promise.all(responses.map((r) => r.json()))).map((j) => j.state)
   );
+});
+
+test('live endpoint answers multiple times', async (t) => {
+  const checkEndpoint = async (endpoint) => {
+    const response = await fetch(endpoint)
+    t.snapshot(response.status);
+    t.snapshot((await response.json()).state);
+  };
+  await startBroker(t);
+  for (let i=0; i<10; ++i) {
+    await checkEndpoint(`http://127.0.0.1:${t.context.healthport}/live`);
+  }
 });
 
 test('healthcheck should not respond if broker is stopped', async (t) => {
@@ -64,7 +76,7 @@ test('custom liveness checker can be given in parameter', async (t) => {
     readiness: {
       checker: (next) => { next('Error'); }
     }
-  })
+  });
 
   const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
