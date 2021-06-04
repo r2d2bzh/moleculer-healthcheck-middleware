@@ -24,13 +24,16 @@ module.exports = function(opts) {
     if (!probe) {
       writeResponse(res, state, 404, 'Not found');
     } else {
-      const timeout = setTimeout(function () {
+      let timeout = setTimeout(function () {
         writeResponse(res, state, 503, 'Request timeout');
       }, probe.timeoutMs);
 
       probe.checker(function (errorMessage) {
-        clearTimeout(timeout);
-        writeResponse(res, state, (typeof errorMessage === 'undefined' && state != 'down') ? 200 : 503, errorMessage);
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+          writeResponse(res, state, (typeof errorMessage === 'undefined' && state != 'down') ? 200 : 503, errorMessage);
+        }
       });
     }
   }
