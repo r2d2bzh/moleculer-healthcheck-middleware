@@ -81,7 +81,7 @@ test('custom liveness checker can be given in parameter', async (t) => {
   const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
   const responses = await Promise.all(
-    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`).catch(error => error))
+    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`))
   );
   t.snapshot(responses.map((r) => r.status));
 });
@@ -101,7 +101,7 @@ test('if custom checker liveness does not invoke callback it returns an error', 
   const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
   const responses = await Promise.all(
-    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`).catch(error => error))
+    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`))
   );
   t.snapshot(responses.map((r) => r.status));
 });
@@ -119,7 +119,7 @@ test('accessing the broker using the createChecker factory', async (t) => {
   const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
   const responses = await Promise.all(
-    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`).catch(error => error))
+    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`))
   );
 
   await Promise.all(
