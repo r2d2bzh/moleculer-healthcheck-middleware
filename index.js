@@ -40,20 +40,21 @@ module.exports = function(opts) {
 
   return {
     created(broker) {
+      const logger = broker.getLogger('moleculer-healthcheck-middleware');
       broker.healthcheck = new EventEmitter();
       state = 'starting';
 
       server = http.createServer(handler);
       server.listen(opts.port, err => {
         if (err) {
-          return broker.logger.error('Unable to start health-check server', err);
+          return logger.error('Unable to start health-check server', err);
         }
 
         // listening port is chosen by NodeJS if opts.port === 0
         broker.healthcheck.port = server.address().port;
         broker.healthcheck.emit('port', broker.healthcheck.port);
 
-        logStartMessage(broker.logger, broker.healthcheck.port, opts.readiness.path, opts.liveness.path);
+        logStartMessage(logger, broker.healthcheck.port, opts.readiness.path, opts.liveness.path);
       });
     },
 
