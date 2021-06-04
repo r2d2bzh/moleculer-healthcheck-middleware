@@ -30,6 +30,5 @@
     "ava": "^3.12.1",
     "moleculer": "^0.14.10",
     "node-fetch": "^2.6.1"
-  },
-  "dependencies": {}
+  }
 }
