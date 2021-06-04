@@ -1,6 +1,6 @@
 {
   "name": "@r2d2bzh/moleculer-healthcheck-middleware",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "See https://gist.github.com/icebob/c717ae22002b9ecaa4b253a67952da3a",
   "main": "index.js",
   "scripts": {

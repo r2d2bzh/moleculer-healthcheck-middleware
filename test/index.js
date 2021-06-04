@@ -12,6 +12,7 @@ const startBroker = async (t, healthCheckOpts = {}) => {
       port: 0,
       ...healthCheckOpts
     })],
+    logLevel: 'warn',
   });
   broker.createService({
     name: 'void',

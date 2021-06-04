@@ -19,12 +19,13 @@ module.exports = function(opts) {
   let server;
   const probeMap = {};
 
-  function handler(req, res) {
+  const handler = (logger) => function (req, res) {
     const probe = probeMap[req.url];
     if (!probe) {
       writeResponse(res, state, 404, 'Not found');
     } else {
       let timeout = setTimeout(function () {
+        logger.warn(`${req.url} checker did not reply in time`);
         writeResponse(res, state, 503, 'Request timeout');
       }, probe.timeoutMs);
 
@@ -33,6 +34,8 @@ module.exports = function(opts) {
           clearTimeout(timeout);
           timeout = null;
           writeResponse(res, state, (typeof errorMessage === 'undefined' && state != 'down') ? 200 : 503, errorMessage);
+        } else {
+          logger.warn(`${req.url} checker is spamming the callback`);
         }
       });
     }
@@ -44,7 +47,7 @@ module.exports = function(opts) {
       broker.healthcheck = new EventEmitter();
       state = 'starting';
 
-      server = http.createServer(handler);
+      server = http.createServer(handler(logger));
       server.listen(opts.port, err => {
         if (err) {
           return logger.error('Unable to start health-check server', err);
@@ -130,9 +133,6 @@ function buildResponseContent(state, code, errorMessage) {
 };
 
 function logStartMessage(logger, port, readinessPath, livenessPath) {
-  logger.info('');
-  logger.info('K8s health-check server listening on');
-  logger.info(`    http://localhost:${port}${readinessPath}`);
-  logger.info(`    http://localhost:${port}${livenessPath}`);
-  logger.info('');
+  logger.info(`K8S readiness URL: http://localhost:${port}${readinessPath}`);
+  logger.info(`K8S liveness URL: http://localhost:${port}${livenessPath}`);
 };
