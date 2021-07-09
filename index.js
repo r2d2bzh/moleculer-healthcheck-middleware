@@ -6,7 +6,7 @@
 const http = require('http');
 const EventEmitter = require('events');
 
-module.exports = function(opts) {
+module.exports = function (opts) {
   opts = initOptions(opts);
 
   optionMustBeFunction(opts.readiness.checker, 'readiness.checker');
@@ -48,11 +48,12 @@ module.exports = function(opts) {
       state = 'starting';
 
       server = http.createServer(handler(logger));
-      server.listen(opts.port, err => {
+      server.on('error', err => {
         if (err) {
           return logger.error('Unable to start health-check server', err);
         }
-
+      });
+      server.listen(opts.port, () => {
         // listening port is chosen by NodeJS if opts.port === 0
         broker.healthcheck.port = server.address().port;
         broker.healthcheck.emit('port', broker.healthcheck.port);
@@ -80,7 +81,7 @@ module.exports = function(opts) {
   };
 };
 
-function defaultIfUndefined (value, defaultValue) {
+function defaultIfUndefined(value, defaultValue) {
   return typeof value === 'undefined' ? defaultValue : value;
 };
 
@@ -121,7 +122,7 @@ function writeResponse(res, state, code, errorMessage) {
 };
 
 function buildResponseContent(state, code, errorMessage) {
-  if(code == 200) {
+  if (code == 200) {
     return {
       state,
       uptime: process.uptime(),
