@@ -48,11 +48,7 @@ module.exports = function (opts) {
       state = 'starting';
 
       server = http.createServer(handler(logger));
-      server.on('error', err => {
-        if (err) {
-          return logger.error('Unable to start health-check server', err);
-        }
-      });
+      
       server.listen(opts.port, () => {
         // listening port is chosen by NodeJS if opts.port === 0
         broker.healthcheck.port = server.address().port;
