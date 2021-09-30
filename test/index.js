@@ -54,14 +54,6 @@ test('live endpoint answers multiple times', async (t) => {
   }
 });
 
-test('healthcheck should not respond if broker is stopped', async (t) => {
-  const endpoints = ['ready', 'live'];
-  const errors = await Promise.all(
-    endpoints.map((e) => fetch(`http://127.0.0.1:${t.context.healthport}/${e}`).catch(error => error))
-  );
-  t.snapshot(errors.map((e) => e.name));
-});
-
 test('custom liveness checker can be given in parameter', async (t) => {
   await startBroker(t, {
     liveness: {
