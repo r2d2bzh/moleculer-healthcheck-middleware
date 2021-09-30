@@ -19,15 +19,8 @@ const startBroker = async (t, healthCheckOpts = {}) => {
   });
   await broker.start();
 
-  let port;
-  if (!broker.healthcheck.port) {
-    port = await event(broker.healthcheck, 'port');
-  } else {
-    port = broker.healthcheck.port;
-  }
-
   t.context.broker = broker;
-  t.context.healthport = port;
+  t.context.healthport = broker.healthcheck.port || await event(broker.healthcheck, 'port');
 }
 
 test.afterEach.always(async (t) => {
