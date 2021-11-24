@@ -28,7 +28,7 @@ module.exports = function (opts) {
         logger.warn(`${req.url} checker did not reply in time`);
         writeResponse(res, state, 503, 'Request timeout');
         timeout = null;
-      }, probe.checkertimeoutMs);
+      }, probe.checkerTimeoutMs);
 
       probe.checker(function (errorMessage) {
         if (timeout) {
