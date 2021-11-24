@@ -92,6 +92,20 @@ test('if custom checker liveness does not invoke callback it returns an error', 
   t.snapshot(responses.map((r) => r.status));
 });
 
+
+test('if custom checker liveness invokes the callback after the timeout', async (t) => {
+  await startBroker(t, {
+    liveness: {
+      checker: (done) => { setTimeout(() => done(), 400); },
+      checkerTimeoutMs: 200
+    }
+  });
+
+  t.snapshot((await fetch(`http://127.0.0.1:${t.context.healthport}/live`)).status);
+  // This is to detect ERR_STREAM_WRITE_AFTER_END errors
+  await new Promise((resolve) => setTimeout(resolve, 600));
+});
+
 test('accessing the broker using the createChecker factory', async (t) => {
   await startBroker(t, {
     liveness: {
