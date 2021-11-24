@@ -75,7 +75,7 @@ module.exports = {
   middlewares: [
     HealthMiddleware({
       liveness: {
-        checkerTimeoutMs: 30000, // default value
+        checkerTimeoutMs: 20000, // default value
         checker: function(next) {
           // Execute here your liveness check...
           if (ok) {
