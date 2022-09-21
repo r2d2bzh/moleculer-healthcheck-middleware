@@ -1,6 +1,6 @@
 {
   "name": "@r2d2bzh/moleculer-healthcheck-middleware",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "See https://gist.github.com/icebob/c717ae22002b9ecaa4b253a67952da3a",
   "main": "index.js",
   "scripts": {
@@ -27,8 +27,8 @@
     "access": "public"
   },
   "devDependencies": {
-    "ava": "^3.15.0",
-    "moleculer": "^0.14.17",
-    "node-fetch": "^2.6.5"
+    "ava": "^4.3.3",
+    "moleculer": "^0.14.23",
+    "node-fetch": "^3.2.10"
   }
 }
