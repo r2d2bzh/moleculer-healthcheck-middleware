@@ -27,8 +27,8 @@
     "access": "public"
   },
   "devDependencies": {
-    "ava": "^5.2.0",
-    "moleculer": "^0.14.28",
-    "node-fetch": "^3.3.0"
+    "ava": "^6.0.1",
+    "moleculer": "^0.14.32",
+    "undici": "^6.3.0"
   }
 }

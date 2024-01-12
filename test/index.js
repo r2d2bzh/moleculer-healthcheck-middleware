@@ -2,7 +2,7 @@ const test = require('ava');
 const { ServiceBroker } = require('moleculer');
 const HealthMiddleware = require('..');
 
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const { fetch } = require('undici');
 
 const event = (emitter, eventName) =>
   new Promise((resolve) => emitter.once(eventName, resolve));
