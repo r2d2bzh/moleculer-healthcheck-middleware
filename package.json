@@ -27,8 +27,8 @@
     "access": "public"
   },
   "devDependencies": {
-    "ava": "^6.0.1",
-    "moleculer": "^0.14.32",
-    "undici": "^6.3.0"
+    "ava": "^6.1.2",
+    "moleculer": "^0.14.33",
+    "undici": "^6.13.0"
   }
 }
