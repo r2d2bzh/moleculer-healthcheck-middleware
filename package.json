@@ -3,12 +3,15 @@
   "version": "2.1.0",
   "description": "See https://gist.github.com/icebob/c717ae22002b9ecaa4b253a67952da3a",
   "main": "index.js",
+  "types": "index.d.ts",
   "type": "module",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "pretest": "npm install",
     "test": "ava",
+    "build:types": "tsc --declaration --allowJs --emitDeclarationOnly index.js",
+    "posttest": "npm run build:types",
     "release": "release-it"
   },
   "repository": {
@@ -37,6 +40,7 @@
     "eslint": "^9.35.0",
     "@r2d2bzh/eslint-config": "^2.0.1",
     "release-it": "^19.0.4",
-    "@release-it/conventional-changelog": "^10.0.1"
+    "@release-it/conventional-changelog": "^10.0.1",
+    "typescript": "^5.9.2"
   }
 }
