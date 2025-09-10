@@ -3,7 +3,10 @@
   "version": "2.0.2",
   "description": "See https://gist.github.com/icebob/c717ae22002b9ecaa4b253a67952da3a",
   "main": "index.js",
+  "type": "module",
   "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "pretest": "npm install",
     "test": "ava"
   },
@@ -27,8 +30,10 @@
     "access": "public"
   },
   "devDependencies": {
-    "ava": "^6.1.2",
-    "moleculer": "^0.14.33",
-    "undici": "^6.13.0"
+    "ava": "^6.4.1",
+    "moleculer": "^0.14.35",
+    "undici": "^7.16.0",
+    "eslint": "^9.35.0",
+    "@r2d2bzh/eslint-config": "^2.0.1"
   }
 }

@@ -1,18 +1,19 @@
-const test = require('ava');
-const { ServiceBroker } = require('moleculer');
-const HealthMiddleware = require('..');
+import test from 'ava';
+import { ServiceBroker } from 'moleculer';
+import HealthMiddleware from '../index.js';
 
-const { fetch } = require('undici');
+import { fetch } from 'undici';
 
-const event = (emitter, eventName) =>
-  new Promise((resolve) => emitter.once(eventName, resolve));
+const event = (emitter, eventName) => new Promise((resolve) => emitter.once(eventName, resolve));
 
 const startBroker = async (t, healthCheckOpts = {}) => {
   const broker = new ServiceBroker({
-    middlewares: [HealthMiddleware({
-      port: 0,
-      ...healthCheckOpts
-    })],
+    middlewares: [
+      HealthMiddleware({
+        port: 0,
+        ...healthCheckOpts,
+      }),
+    ],
     logLevel: 'warn',
   });
   broker.createService({
@@ -21,11 +22,11 @@ const startBroker = async (t, healthCheckOpts = {}) => {
   await broker.start();
 
   t.context.broker = broker;
-  t.context.healthport = broker.healthcheck.port || await event(broker.healthcheck, 'port');
-}
+  t.context.healthport = broker.healthcheck.port || (await event(broker.healthcheck, 'port'));
+};
 
 test.afterEach.always(async (t) => {
-  if(t.context.broker) {
+  if (t.context.broker) {
     await t.context.broker.stop();
   }
 });
@@ -34,23 +35,19 @@ test('healthcheck endpoints are responding', async (t) => {
   await startBroker(t);
 
   const endpoints = ['ready', 'live'];
-  const responses = await Promise.all(
-    endpoints.map((e) => fetch(`http://127.0.0.1:${t.context.healthport}/${e}`))
-  );
+  const responses = await Promise.all(endpoints.map((e) => fetch(`http://127.0.0.1:${t.context.healthport}/${e}`)));
   t.snapshot(responses.map((r) => r.status));
-  t.snapshot(
-    (await Promise.all(responses.map((r) => r.json()))).map((j) => j.state)
-  );
+  t.snapshot((await Promise.all(responses.map((r) => r.json()))).map((j) => j.state));
 });
 
 test('live endpoint answers multiple times', async (t) => {
   const checkEndpoint = async (endpoint) => {
-    const response = await fetch(endpoint)
+    const response = await fetch(endpoint);
     t.snapshot(response.status);
     t.snapshot((await response.json()).state);
   };
   await startBroker(t);
-  for (let i=0; i<10; ++i) {
+  for (let i = 0; i < 10; ++i) {
     await checkEndpoint(`http://127.0.0.1:${t.context.healthport}/live`);
   }
 });
@@ -58,18 +55,20 @@ test('live endpoint answers multiple times', async (t) => {
 test('custom liveness checker can be given in parameter', async (t) => {
   await startBroker(t, {
     liveness: {
-      checker: (next) => { next('Error'); }
+      checker: (next) => {
+        next('Error');
+      },
     },
     readiness: {
-      checker: (next) => { next('Error'); }
-    }
+      checker: (next) => {
+        next('Error');
+      },
+    },
   });
 
   const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
-  const responses = await Promise.all(
-    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`))
-  );
+  const responses = await Promise.all(endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`)));
   t.snapshot(responses.map((r) => r.status));
 });
 
@@ -77,29 +76,28 @@ test('if custom checker liveness does not invoke callback it returns an error', 
   await startBroker(t, {
     liveness: {
       checker: () => {},
-      checkerTimeoutMs: 500
+      checkerTimeoutMs: 500,
     },
     readiness: {
       checker: () => {},
-      checkerTimeoutMs: 500
-    }
+      checkerTimeoutMs: 500,
+    },
   });
 
   const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
-  const responses = await Promise.all(
-    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`))
-  );
+  const responses = await Promise.all(endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`)));
   t.snapshot(responses.map((r) => r.status));
 });
-
 
 test('if custom checker liveness invokes the callback after the timeout', async (t) => {
   await startBroker(t, {
     liveness: {
-      checker: (done) => { setTimeout(() => done(), 400); },
-      checkerTimeoutMs: 200
-    }
+      checker: (done) => {
+        setTimeout(() => done(), 400);
+      },
+      checkerTimeoutMs: 200,
+    },
   });
 
   t.snapshot((await fetch(`http://127.0.0.1:${t.context.healthport}/live`)).status);
@@ -110,23 +108,25 @@ test('if custom checker liveness invokes the callback after the timeout', async 
 test('accessing the broker using the createChecker factory', async (t) => {
   await startBroker(t, {
     liveness: {
-      createChecker: (b) => (next) => { next(b.healthcheck.port); }
+      createChecker: (b) => (next) => {
+        next(b.healthcheck.port);
+      },
     },
     readiness: {
-      createChecker: (b) => (next) => { next(b.healthcheck.port); }
-    }
+      createChecker: (b) => (next) => {
+        next(b.healthcheck.port);
+      },
+    },
   });
 
   const port = t.context.healthport;
   const endpoints = ['ready', 'live'];
-  const responses = await Promise.all(
-    endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`))
-  );
+  const responses = await Promise.all(endpoints.map((e) => fetch(`http://127.0.0.1:${port}/${e}`)));
 
   await Promise.all(
     responses.map(async (res) => {
       const body = await res.json();
       t.deepEqual(body, port);
-    })
+    }),
   );
 });
