@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "pretest": "npm install",
-    "test": "ava"
+    "test": "ava",
+    "release": "release-it"
   },
   "repository": {
     "type": "git",
@@ -34,6 +35,8 @@
     "moleculer": "^0.14.35",
     "undici": "^7.16.0",
     "eslint": "^9.35.0",
-    "@r2d2bzh/eslint-config": "^2.0.1"
+    "@r2d2bzh/eslint-config": "^2.0.1",
+    "release-it": "^19.0.4",
+    "@release-it/conventional-changelog": "^10.0.1"
   }
 }

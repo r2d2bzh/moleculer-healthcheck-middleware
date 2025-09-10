@@ -1,0 +1,18 @@
+npm:
+  publish: false
+git:
+  commitMessage: "chore: bump version to ${version}"
+  requireCleanWorkingDir: true
+  commit: true
+  tag: true
+  push: true
+plugins:
+  "@release-it/conventional-changelog":
+    ignoreRecommendedBump: true
+    preset: "angular"
+    header: "# Changelog"
+    infile: "CHANGELOG.md"
+hooks:
+  before:init:
+  - npm i
+  after:release: "echo Successfully released ${name} v${version} to ${repo.repository}."
