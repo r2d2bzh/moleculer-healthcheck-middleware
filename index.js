@@ -1,62 +1,61 @@
 // The following originally comes from a gist available here:
 // https://gist.github.com/icebob/c717ae22002b9ecaa4b253a67952da3a
 
-'use strict';
+import http from 'node:http';
+import EventEmitter from 'node:events';
 
-import http from 'http';
-import EventEmitter from 'events';
+export default (options) => {
+  options = initOptions(options);
 
-export default (opts) => {
-  opts = initOptions(opts);
+  optionMustBeFunction(options.readiness.checker, 'readiness.checker');
+  optionMustBeFunction(options.liveness.checker, 'liveness.checker');
 
-  optionMustBeFunction(opts.readiness.checker, 'readiness.checker');
-  optionMustBeFunction(opts.liveness.checker, 'liveness.checker');
-
-  optionMustBeFunction(opts.readiness.createChecker, 'readiness.createChecker');
-  optionMustBeFunction(opts.liveness.createChecker, 'liveness.createChecker');
+  optionMustBeFunction(options.readiness.createChecker, 'readiness.createChecker');
+  optionMustBeFunction(options.liveness.createChecker, 'liveness.createChecker');
 
   let state = 'down';
   let server;
   const probeMap = {};
 
   const handler = (logger) =>
-    function (req, res) {
-      const probe = probeMap[req.url];
-      if (!probe) {
-        writeResponse({ res, state, code: 404, errorMessage: 'Not found' });
-      } else {
+    function (request, response) {
+      const probe = probeMap[request.url];
+      if (probe) {
         let timeout = setTimeout(() => {
-          logger.warn(`${req.url} checker did not reply in time`);
-          writeResponse({ res, state, code: 503, errorMessage: 'Request timeout' });
-          timeout = null;
+          logger.warn(`${request.url} checker did not reply in time`);
+          writeResponse({ response, state, code: 503, errorMessage: 'Request timeout' });
+          timeout = undefined;
         }, probe.checkerTimeoutMs);
 
         probe.checker((errorMessage) => {
           if (timeout) {
             clearTimeout(timeout);
-            timeout = null;
+            timeout = undefined;
             writeResponse({
-              res,
+              response,
               state,
-              code: typeof errorMessage === 'undefined' && state != 'down' ? 200 : 503,
+              code: errorMessage === undefined && state != 'down' ? 200 : 503,
               errorMessage,
             });
           } else {
-            logger.warn(`${req.url} checker is spamming the callback`);
+            logger.warn(`${request.url} checker is spamming the callback`);
           }
         });
+      } else {
+        writeResponse({ response, state, code: 404, errorMessage: 'Not found' });
       }
     };
 
   return {
     created(broker) {
       const logger = broker.getLogger('moleculer-healthcheck-middleware');
+      // eslint-disable-next-line unicorn/prefer-event-target
       broker.healthcheck = new EventEmitter();
       state = 'starting';
 
       server = http.createServer(handler(logger));
 
-      server.listen(opts.port, () => {
+      server.listen(options.port, () => {
         // listening port is chosen by NodeJS if opts.port === 0
         broker.healthcheck.port = server.address().port;
         broker.healthcheck.emit('port', broker.healthcheck.port);
@@ -64,8 +63,8 @@ export default (opts) => {
         logStartMessage({
           logger,
           port: broker.healthcheck.port,
-          readinessPath: opts.readiness.path,
-          livenessPath: opts.liveness.path,
+          readinessPath: options.readiness.path,
+          livenessPath: options.liveness.path,
         });
       });
     },
@@ -73,7 +72,7 @@ export default (opts) => {
     // After broker started
     started(broker) {
       state = 'up';
-      [opts.readiness, opts.liveness].forEach((probe) => initProbeMap(probeMap, probe, broker));
+      for (const probe of [options.readiness, options.liveness]) initProbeMap(probeMap, probe, broker);
     },
 
     // Before broker stopping
@@ -90,31 +89,31 @@ export default (opts) => {
 };
 
 const defaultIfUndefined = (value, defaultValue) => {
-  return typeof value === 'undefined' ? defaultValue : value;
+  return value === undefined ? defaultValue : value;
 };
 
-const initOptions = (opts) => {
-  opts = defaultIfUndefined(opts, {});
-  opts.port = defaultIfUndefined(opts.port, 3001);
-  opts.readiness = defaultIfUndefined(opts.readiness, {});
-  opts.liveness = defaultIfUndefined(opts.liveness, {});
-  opts.readiness.path = defaultIfUndefined(opts.readiness.path, '/ready');
-  opts.readiness.createChecker = defaultIfUndefined(opts.readiness.createChecker, function () {
-    return opts.readiness.checker;
+const initOptions = (options) => {
+  options = defaultIfUndefined(options, {});
+  options.port = defaultIfUndefined(options.port, 3001);
+  options.readiness = defaultIfUndefined(options.readiness, {});
+  options.liveness = defaultIfUndefined(options.liveness, {});
+  options.readiness.path = defaultIfUndefined(options.readiness.path, '/ready');
+  options.readiness.createChecker = defaultIfUndefined(options.readiness.createChecker, function () {
+    return options.readiness.checker;
   });
-  opts.readiness.checker = defaultIfUndefined(opts.readiness.checker, function (next) {
+  options.readiness.checker = defaultIfUndefined(options.readiness.checker, function (next) {
     return next();
   });
-  opts.readiness.checkerTimeoutMs = defaultIfUndefined(opts.readiness.checkerTimeoutMs, 20000);
-  opts.liveness.path = defaultIfUndefined(opts.liveness.path, '/live');
-  opts.liveness.createChecker = defaultIfUndefined(opts.liveness.createChecker, function () {
-    return opts.liveness.checker;
+  options.readiness.checkerTimeoutMs = defaultIfUndefined(options.readiness.checkerTimeoutMs, 20_000);
+  options.liveness.path = defaultIfUndefined(options.liveness.path, '/live');
+  options.liveness.createChecker = defaultIfUndefined(options.liveness.createChecker, function () {
+    return options.liveness.checker;
   });
-  opts.liveness.checker = defaultIfUndefined(opts.liveness.checker, function (next) {
+  options.liveness.checker = defaultIfUndefined(options.liveness.checker, function (next) {
     return next();
   });
-  opts.liveness.checkerTimeoutMs = defaultIfUndefined(opts.liveness.checkerTimeoutMs, 20000);
-  return opts;
+  options.liveness.checkerTimeoutMs = defaultIfUndefined(options.liveness.checkerTimeoutMs, 20_000);
+  return options;
 };
 
 const initProbeMap = (probeMap, probe, broker) => {
@@ -124,29 +123,27 @@ const initProbeMap = (probeMap, probe, broker) => {
 
 const optionMustBeFunction = (option, optionName) => {
   if (typeof option !== 'function') {
-    throw new Error(`option ${optionName} is not a function`);
+    throw new TypeError(`option ${optionName} is not a function`);
   }
 };
 
-const writeResponse = ({ res, state, code, errorMessage }) => {
-  const resHeader = {
+const writeResponse = ({ response, state, code, errorMessage }) => {
+  const responseHeader = {
     'Content-Type': 'application/json; charset=utf-8',
   };
-  res.writeHead(code, resHeader);
+  response.writeHead(code, responseHeader);
   const content = buildResponseContent(state, code, errorMessage);
-  res.end(JSON.stringify(content, null, 2));
+  response.end(JSON.stringify(content, undefined, 2));
 };
 
 const buildResponseContent = (state, code, errorMessage) => {
-  if (code == 200) {
-    return {
-      state,
-      uptime: process.uptime(),
-      timestamp: Date.now(),
-    };
-  } else {
-    return errorMessage;
-  }
+  return code == 200
+    ? {
+        state,
+        uptime: process.uptime(),
+        timestamp: Date.now(),
+      }
+    : errorMessage;
 };
 
 const logStartMessage = ({ logger, port, readinessPath, livenessPath }) => {
