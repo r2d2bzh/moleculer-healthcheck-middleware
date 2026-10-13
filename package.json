@@ -34,13 +34,13 @@
     "access": "public"
   },
   "devDependencies": {
-    "@r2d2bzh/eslint-config": "^3.0.1",
-    "@release-it/conventional-changelog": "^11.0.1",
+    "@r2d2bzh/eslint-config": "^4.0.0",
+    "@release-it/conventional-changelog": "^12.0.2",
     "ava": "^8.0.1",
-    "eslint": "^10.5.0",
-    "moleculer": "^0.14.35",
-    "release-it": "^20.2.0",
+    "eslint": "^10.12.0",
+    "moleculer": "^0.14.36",
+    "release-it": "^21.1.1",
     "typescript": "^6.0.3",
-    "undici": "^8.5.0"
+    "undici": "^8.11.2"
   }
 }
