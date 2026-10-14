@@ -1,5 +1,15 @@
 # Changelog
 
+# [2.4.0](https://github.com/r2d2bzh/moleculer-healthcheck-middleware/compare/2.3.0...2.4.0) (2026-10-14)
+
+### Bug Fixes
+
+* follow the documented probe states ([fe86574](https://github.com/r2d2bzh/moleculer-healthcheck-middleware/commit/fe86574a68420c929a907867d1f99d9778389233))
+
+### Features
+
+* publish the TypeScript declarations ([cc721a8](https://github.com/r2d2bzh/moleculer-healthcheck-middleware/commit/cc721a874141ebdda3c441320426e0952ff20ba3))
+
 # [2.2.0](https://github.com/r2d2bzh/moleculer-healthcheck-middleware/compare/2.1.0...2.2.0) (2025-09-10)
 
 
