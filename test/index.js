@@ -135,3 +135,65 @@ test('accessing the broker using the createChecker factory', async (t) => {
     }),
   );
 });
+
+const createSlowBroker = (hooks) => {
+  const broker = new ServiceBroker({ middlewares: [HealthMiddleware({ port: 0 })], logLevel: 'warn' });
+  broker.createService({ name: 'slow', ...hooks });
+  return broker;
+};
+
+const probeStatuses = (port) =>
+  Promise.all(
+    ['ready', 'live'].map(async (endpoint) => {
+      const { status } = await fetch(`http://127.0.0.1:${port}/${endpoint}`);
+      return status;
+    }),
+  );
+
+test('probes fail while the broker is starting', async (t) => {
+  let releaseStart;
+  const broker = createSlowBroker({ started: () => new Promise((resolve) => (releaseStart = resolve)) });
+  t.context.broker = broker;
+  const starting = broker.start();
+  const port = broker.healthcheck.port || (await event(broker.healthcheck, 'port'));
+
+  t.deepEqual(await probeStatuses(port), [503, 503]);
+  releaseStart();
+  await starting;
+  t.deepEqual(await probeStatuses(port), [200, 200]);
+});
+
+test('probes fail while the broker is stopping', async (t) => {
+  let releaseStop;
+  let notifyStopping;
+  const stoppingReached = new Promise((resolve) => (notifyStopping = resolve));
+  const broker = createSlowBroker({
+    stopped: () => {
+      notifyStopping();
+      return new Promise((resolve) => (releaseStop = resolve));
+    },
+  });
+  await broker.start();
+  const port = broker.healthcheck.port || (await event(broker.healthcheck, 'port'));
+
+  const stopping = broker.stop();
+  await stoppingReached;
+  t.deepEqual(await probeStatuses(port), [503, 503]);
+  releaseStop();
+  await stopping;
+});
+
+test('options given by the caller are left untouched', (t) => {
+  const options = { readiness: { path: '/custom' } };
+  HealthMiddleware(options);
+  t.deepEqual(options, { readiness: { path: '/custom' } });
+});
+
+test('a createChecker factory not returning a function fails the broker start', async (t) => {
+  const broker = new ServiceBroker({
+    middlewares: [HealthMiddleware({ port: 0, liveness: { createChecker: () => 'not a function' } })],
+    logLevel: 'fatal',
+  });
+  await t.throwsAsync(() => broker.start(), { message: /liveness.createChecker\(\) result is not a function/ });
+  await broker.stop();
+});

@@ -1,5 +1,8 @@
 npm:
   publish: false
+github:
+  # Creating the GitHub release triggers the npm publication workflow
+  release: true
 git:
   commitMessage: "chore: bump version to ${version}"
   requireCleanWorkingDir: true

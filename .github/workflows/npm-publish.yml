@@ -1,33 +1,58 @@
 name: Node.js Package
 
 on:
+  push:
+    branches: [ '**' ]
+  pull_request:
   release:
     types: [created]
 
+permissions:
+  contents: read
+
 jobs:
   test:
+    # Pull requests from the repository branches are already tested by the push event
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [ 22, 24, 26 ]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
       - run: npm test
 
   publish-npm:
+    if: github.event_name == 'release'
     needs: test
     runs-on: ubuntu-latest
     permissions:
+      # npm trusted publishing (OIDC) and provenance
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           registry-url: https://registry.npmjs.org/
       - run: npm ci
-      - run: npm publish --provenance
+      # Pre-releases are published under their identifier as dist-tag (x.y.z-alpha.n -> alpha)
+      # or under "next" (x.y.z-n) so that they are never installed by default
+      - name: Publish package
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          case "$version" in
+            *-*)
+              tag="$(echo "$version" | sed -n 's/^[^-]*-\([A-Za-z][A-Za-z0-9]*\).*/\1/p')"
+              npm publish --provenance --tag "${tag:-next}"
+              ;;
+            *) npm publish --provenance ;;
+          esac
