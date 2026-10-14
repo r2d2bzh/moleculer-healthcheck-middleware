@@ -4,47 +4,82 @@
 import http from 'node:http';
 import EventEmitter from 'node:events';
 
-export default (options) => {
-  options = initOptions(options);
+/**
+@callback CheckerCallback
+@param {unknown} [errorMessage] Any value other than `undefined` fails the check
+@returns {void}
+*/
 
-  optionMustBeFunction(options.readiness.checker, 'readiness.checker');
-  optionMustBeFunction(options.liveness.checker, 'liveness.checker');
+/**
+@callback Checker
+@param {CheckerCallback} next
+@returns {void}
+*/
 
-  optionMustBeFunction(options.readiness.createChecker, 'readiness.createChecker');
-  optionMustBeFunction(options.liveness.createChecker, 'liveness.createChecker');
+/**
+@typedef {object} ProbeOptions
+@property {string} [path]
+@property {Checker} [checker]
+@property {(broker: any) => Checker} [createChecker] Called when the broker is started
+@property {number} [checkerTimeoutMs]
+*/
+
+/**
+@typedef {object} HealthCheckOptions
+@property {number} [port] `0` lets the system choose a free port
+@property {ProbeOptions} [readiness]
+@property {ProbeOptions} [liveness]
+*/
+
+/**
+@typedef {object} HealthCheckMiddleware
+@property {(broker: any) => void} created
+@property {(broker: any) => void} started
+@property {() => void} stopping
+@property {() => void} stopped
+*/
+
+/**
+@param {HealthCheckOptions} [options]
+@returns {HealthCheckMiddleware}
+*/
+export default (options = {}) => {
+  const { port, readiness, liveness } = initOptions(options);
 
   let state = 'down';
   let server;
-  const probeMap = {};
+  const checkers = new Map();
 
-  const handler = (logger) =>
-    function (request, response) {
-      const probe = probeMap[request.url];
-      if (probe) {
-        let timeout = setTimeout(() => {
-          logger.warn(`${request.url} checker did not reply in time`);
-          writeResponse({ response, state, code: 503, errorMessage: 'Request timeout' });
-          timeout = undefined;
-        }, probe.checkerTimeoutMs);
+  const handler = (logger) => (request, response) => {
+    const probe = [readiness, liveness].find(({ path }) => path === request.url);
+    if (!probe) {
+      writeResponse({ response, state, code: 404, errorMessage: 'Not found' });
+      return;
+    }
 
-        probe.checker((errorMessage) => {
-          if (timeout) {
-            clearTimeout(timeout);
-            timeout = undefined;
-            writeResponse({
-              response,
-              state,
-              code: errorMessage === undefined && state != 'down' ? 200 : 503,
-              errorMessage,
-            });
-          } else {
-            logger.warn(`${request.url} checker is spamming the callback`);
-          }
-        });
+    // Probes only succeed while the broker is up, as documented
+    const checker = checkers.get(probe);
+    if (state !== 'up' || !checker) {
+      writeResponse({ response, state, code: 503, errorMessage: `Broker is ${state}` });
+      return;
+    }
+
+    let timeout = setTimeout(() => {
+      logger.warn(`${request.url} checker did not reply in time`);
+      writeResponse({ response, state, code: 503, errorMessage: 'Request timeout' });
+      timeout = undefined;
+    }, probe.checkerTimeoutMs);
+
+    checker((errorMessage) => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = undefined;
+        writeResponse({ response, state, code: errorMessage === undefined ? 200 : 503, errorMessage });
       } else {
-        writeResponse({ response, state, code: 404, errorMessage: 'Not found' });
+        logger.warn(`${request.url} checker replied after the timeout or more than once`);
       }
-    };
+    });
+  };
 
   return {
     created(broker) {
@@ -55,24 +90,28 @@ export default (options) => {
 
       server = http.createServer(handler(logger));
 
-      server.listen(options.port, () => {
-        // listening port is chosen by NodeJS if opts.port === 0
+      server.listen(port, () => {
+        // listening port is chosen by NodeJS if port === 0
         broker.healthcheck.port = server.address().port;
         broker.healthcheck.emit('port', broker.healthcheck.port);
 
         logStartMessage({
           logger,
           port: broker.healthcheck.port,
-          readinessPath: options.readiness.path,
-          livenessPath: options.liveness.path,
+          readinessPath: readiness.path,
+          livenessPath: liveness.path,
         });
       });
     },
 
     // After broker started
     started(broker) {
+      for (const probe of [readiness, liveness]) {
+        const checker = probe.createChecker(broker);
+        optionMustBeFunction(checker, `${probe.name}.createChecker() result`);
+        checkers.set(probe, checker);
+      }
       state = 'up';
-      for (const probe of [options.readiness, options.liveness]) initProbeMap(probeMap, probe, broker);
     },
 
     // Before broker stopping
@@ -88,38 +127,25 @@ export default (options) => {
   };
 };
 
-const defaultIfUndefined = (value, defaultValue) => {
-  return value === undefined ? defaultValue : value;
+const initProbe = ({ name, probe = {}, defaultPath }) => {
+  const checker = probe.checker ?? ((next) => next());
+  const createChecker = probe.createChecker ?? (() => checker);
+  optionMustBeFunction(checker, `${name}.checker`);
+  optionMustBeFunction(createChecker, `${name}.createChecker`);
+  return {
+    name,
+    path: probe.path ?? defaultPath,
+    createChecker,
+    checkerTimeoutMs: probe.checkerTimeoutMs ?? 20_000,
+  };
 };
 
-const initOptions = (options) => {
-  options = defaultIfUndefined(options, {});
-  options.port = defaultIfUndefined(options.port, 3001);
-  options.readiness = defaultIfUndefined(options.readiness, {});
-  options.liveness = defaultIfUndefined(options.liveness, {});
-  options.readiness.path = defaultIfUndefined(options.readiness.path, '/ready');
-  options.readiness.createChecker = defaultIfUndefined(options.readiness.createChecker, function () {
-    return options.readiness.checker;
-  });
-  options.readiness.checker = defaultIfUndefined(options.readiness.checker, function (next) {
-    return next();
-  });
-  options.readiness.checkerTimeoutMs = defaultIfUndefined(options.readiness.checkerTimeoutMs, 20_000);
-  options.liveness.path = defaultIfUndefined(options.liveness.path, '/live');
-  options.liveness.createChecker = defaultIfUndefined(options.liveness.createChecker, function () {
-    return options.liveness.checker;
-  });
-  options.liveness.checker = defaultIfUndefined(options.liveness.checker, function (next) {
-    return next();
-  });
-  options.liveness.checkerTimeoutMs = defaultIfUndefined(options.liveness.checkerTimeoutMs, 20_000);
-  return options;
-};
-
-const initProbeMap = (probeMap, probe, broker) => {
-  probe.checker = probe.createChecker(broker);
-  probeMap[probe.path] = probe;
-};
+// A new object is built so that the options given by the caller are left untouched
+const initOptions = ({ port = 3001, readiness, liveness }) => ({
+  port,
+  readiness: initProbe({ name: 'readiness', probe: readiness, defaultPath: '/ready' }),
+  liveness: initProbe({ name: 'liveness', probe: liveness, defaultPath: '/live' }),
+});
 
 const optionMustBeFunction = (option, optionName) => {
   if (typeof option !== 'function') {
@@ -137,7 +163,7 @@ const writeResponse = ({ response, state, code, errorMessage }) => {
 };
 
 const buildResponseContent = (state, code, errorMessage) => {
-  return code == 200
+  return code === 200
     ? {
         state,
         uptime: process.uptime(),
